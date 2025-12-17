@@ -1,9 +1,12 @@
 import { Server as SocketIOServer } from 'socket.io'
 import { Server as HTTPServer } from 'http'
+import { EventEmitter } from 'events'
+import { whatsappConnection } from '@/modules/whatsapp/connection.js'
 
 export interface WhatsAppConnectionEvent {
     sessionId: string
     whatsappId: string
+    sock: whatsappConnection
     event: 'authenticated' | 'logged_out' | 'error' | 'connecting'
     data?: any
 }
@@ -22,11 +25,12 @@ export interface WhatsAppMessageEvent {
     data?: any
 }
 
-export class SocketService {
+export class SocketService extends EventEmitter {
     private io: SocketIOServer
     private static instance: SocketService
 
     constructor(server: HTTPServer) {
+        super()
         this.io = new SocketIOServer(server, {
             cors: {
                 origin: "*",
@@ -112,13 +116,15 @@ export class SocketService {
     /**
      * Mengirim status koneksi ke sesi tertentu
      */
-    public emitConnectionStatus(sessionId: string, whatsappId: string, status: 'connecting' | 'authenticated' | 'logged_out' | 'error', data?: any): void {
+    public emitConnectionStatus(sessionId: string, whatsappId: string, sock: whatsappConnection, status: 'connecting' | 'authenticated' | 'logged_out' | 'error', data?: any): void {
         const event: WhatsAppConnectionEvent = {
             sessionId,
             whatsappId,
+            sock,
             event: status,
             data
         }
+        this.emit('connection_status', event)
         this.emitToSession(sessionId, event)
     }
 

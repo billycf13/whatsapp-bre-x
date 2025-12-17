@@ -88,6 +88,7 @@ export class whatsappConnection {
                             this.socketService.emitConnectionStatus(
                                 this.sessionId,
                                 this.whatsappId,
+                                this.sock,
                                 'authenticated',
                                 {
                                     remoteJid,
@@ -101,6 +102,7 @@ export class whatsappConnection {
                             this.socketService.emitConnectionStatus(
                                 this.sessionId,
                                 this.whatsappId,
+                                this.sock,
                                 'connecting'
                             )
                         }
@@ -130,6 +132,7 @@ export class whatsappConnection {
                                 this.socketService.emitConnectionStatus(
                                     this.sessionId,
                                     this.whatsappId,
+                                    this.sock,
                                     'logged_out'
                                 )
                             }
@@ -144,6 +147,7 @@ export class whatsappConnection {
                                     this.socketService.emitConnectionStatus(
                                         this.sessionId,
                                         this.whatsappId,
+                                        this.sock,
                                         'error',
                                         {
                                             message: 'Max retry exceeded'
@@ -155,6 +159,7 @@ export class whatsappConnection {
                                 this.socketService.emitConnectionStatus(
                                     this.sessionId,
                                     this.whatsappId,
+                                    this.sock,
                                     'connecting'
                                 )
 
