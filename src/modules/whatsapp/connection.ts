@@ -6,7 +6,7 @@ import { whatsappHandler } from './handler.js'
 import * as QRCode from 'qrcode'
 import { SocketService } from '../../config/socket.js'
 
-export class whatsappConnection {
+export class WhatsAppConnection {
     private authFolder: string
     private sessionId: string
     private sessionName: string
@@ -20,7 +20,7 @@ export class whatsappConnection {
     private maxRetry = 3
     private retryCount = 0
 
-    constructor(authFolder: string, sessionId: string, sessionName: string, whatsappId: string) {
+    constructor(authFolder: string, sessionId: string, sessionName: string, whatsappId: string, socketService: SocketService) {
         this.authFolder = authFolder
         this.sessionId = sessionId
         this.whatsappId = whatsappId
@@ -32,7 +32,7 @@ export class whatsappConnection {
 
         this.baileysLogger = createBaileysLogger({ sessionName: this.sessionName, level: 'warn' })
 
-        this.socketService = SocketService.getInstance()
+        this.socketService = socketService
 
         this.handler = new whatsappHandler(this.sessionId, this.whatsappId, this.socketService)
     }
@@ -237,5 +237,22 @@ export class whatsappConnection {
         } catch (error) {
             this.logger.error({ error }, 'Failed to start WhatsApp connection')
         }
+    }
+
+    public async logout() {
+        try {
+            return await this.sock.logout()
+        } catch (error) {
+            this.logger.error({ error }, 'Failed to logout WhatsApp connection')
+        }
+    }
+
+    public get socket(): ReturnType<typeof makeWASocket> {
+        if (!this.sock) { throw new Error('WhatsApp connection not initialized') }
+        return this.sock
+    }
+
+    public decodeJid(lid: string) {
+        return this.socket.signalRepository.lidMapping.getPNForLID(lid)
     }
 }

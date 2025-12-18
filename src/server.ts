@@ -5,9 +5,12 @@ import { SocketService } from './config/socket.js'
 
 const host = process.env.HOST || '0.0.0.0'
 const port = process.env.PORT || 3001
+const dbUrl = process.env.DATABASE_URL
+const frontendUrl = process.env.FRONTEND_URL
 
 const startServer = async () => {
     try {
+        logger.info({ dbUrl, frontendUrl }, 'Starting server')
 
         const server = createServer(app)
 

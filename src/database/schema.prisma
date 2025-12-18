@@ -1,0 +1,76 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+enum ConnectionStatus {
+    CONNECTING
+    AUTHENTICATED
+    LOGGED_OUT
+    ERROR
+}
+
+model WhatsAppSession {
+    id              String   @id @default(uuid())
+    sessionName     String
+    whatsappId      String?
+    pushName        String?
+    phoneNumber     String?
+    status          ConnectionStatus
+    lastError       String?
+    lastActivity    DateTime?
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+
+    whatsappContact WhatsAppContact[]
+}
+
+model WhatsAppContact {
+    id                   String   @id @default(uuid())
+    pushName             String
+    phoneNumber          String
+    remoteJid            String
+    profilePicture       String?
+    lastSeen             DateTime?
+    unreadCount          Int @default(0)
+    lastMessage          String?
+    lastMessageTime      DateTime?
+    lastMessageFromMe    Boolean @default(false)
+    createdAt            DateTime @default(now())
+    updatedAt            DateTime @updatedAt
+    
+
+    sessionId            String
+    session              WhatsAppSession        @relation(fields: [sessionId], references: [id])
+
+    whatsappMessage      WhatsAppMessage[]
+
+    @@index([remoteJid])
+    @@index([phoneNumber])
+    @@unique([remoteJid, sessionId])
+    @@map("whatsapp_contact")
+}
+
+model WhatsAppMessage {
+    id                   String   @id @default(uuid())
+    content              String?
+    contentType          String
+    fromMe               Boolean
+    status               Int
+    messageTimestamp     DateTime
+    messageId            String
+    messageKey           Json
+    reactionMessage      String?
+    quotedMessage        String?
+    mediaUrl             String?
+    metaData             Json?
+
+    contactId            String
+    contact              WhatsAppContact @relation(fields: [contactId], references: [id])
+
+    @@index([messageId])
+    @@unique([messageId, contactId])   
+}
