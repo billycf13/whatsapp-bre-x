@@ -1,0 +1,97 @@
+@base_url = http://127.0.0.1:3001
+@token = vLv6qxyBuyVJfModT6vBgQnY
+@account_id = 1
+
+### Get All Inboxes
+GET {{base_url}}/api/v1/accounts/{{account_id}}/inboxes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### Create Inbox
+# @name createInbox
+POST {{base_url}}/api/v1/accounts/{{account_id}}/inboxes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "WhatsApp Test Inbox",
+    "channel": {
+        "type": "api",
+        "webhook_url": "http://your-webhook-url.com"
+    }
+}
+
+### Update Webhook URL
+@inbox_id = 1
+PUT {{base_url}}/api/v1/accounts/{{account_id}}/inboxes/{{inbox_id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "channel": {
+        "webhook_url": "http://new-webhook-url.com"
+    }
+}
+
+### Search Contact (by JID or Phone)
+@search_query = 628123456789
+GET {{base_url}}/api/v1/accounts/{{account_id}}/contacts/search?page=1&q={{search_query}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### Create Contact
+# @name createContact
+POST {{base_url}}/api/v1/accounts/{{account_id}}/contacts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "inbox_id": 1,
+    "name": "John Doe",
+    "identifier": "628123456789@s.whatsapp.net",
+    "phone_number": "+628123456789"
+}
+
+### Get Contact Conversations
+@contact_id = 1
+GET {{base_url}}/api/v1/accounts/{{account_id}}/contacts/{{contact_id}}/conversations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### Create Conversation
+# @name createConversation
+POST {{base_url}}/api/v1/accounts/{{account_id}}/conversations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "source_id": "whatsapp-jid-example",
+    "inbox_id": 1,
+    "contact_id": 1,
+    "status": "open"
+}
+
+### Create Text Message
+@conversation_id = 1
+POST {{base_url}}/api/v1/accounts/{{account_id}}/conversations/{{conversation_id}}/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "content": "Hello from API Test!",
+    "content_type": "text",
+    "message_type": "incoming"
+}
+
+### Create Reaction (Private Message)
+POST {{base_url}}/api/v1/accounts/{{account_id}}/conversations/{{conversation_id}}/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "content": "👍",
+    "private": true,
+    "content_attributes": {
+        "in_reply_to": 123
+    }
+}

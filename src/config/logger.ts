@@ -53,12 +53,20 @@ export function createModuleLogger(moduleName: string): Logger {
  * Create a child logger for WhatsApp session management
  * @param sessionId - Unique session identifier
  */
-export function createSessionLogger(sessionId: string): Logger {
+export function createSessionLogger(sessionName: string): Logger {
     return logger.child({
-        module: 'session',
-        sessionId,
+        module: 'whatsapp',
+        sessionName,
     })
 }
+
+export function createChatwootLogger(inbox_name: string): Logger {
+    return logger.child({
+        module: 'chatwoot',
+        inbox_name,
+    })
+}
+
 
 /**
  * Baileys logger interface - compatible with Baileys library

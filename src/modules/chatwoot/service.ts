@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios'
 import FormData, { AppendOptions } from 'form-data'
 import { downloadMediaMessage, WAMessage } from '@whiskeysockets/baileys'
-import { Logger, createSessionLogger } from '@/config/logger.js'
+import { Logger, createChatwootLogger, createSessionLogger } from '@/config/logger.js'
 
 
 export class ChatwootService {
@@ -16,11 +16,11 @@ export class ChatwootService {
         this.axiosInstance = axios.create({
             baseURL: baseUrl,
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'api_access_token': token,
                 'Content-Type': 'application/json'
             }
         })
-        this.logger = createSessionLogger('ChatwootService')
+        this.logger = createChatwootLogger('ChatwootService')
         this.account_id = account_id
     }
 
@@ -61,11 +61,7 @@ export class ChatwootService {
             return {
                 success: true,
                 data: {
-                    id: response.data.payload.id,
-                    name: response.data.payload.name,
-                    channel_type: response.data.payload.channel_type,
-                    inbox_identifier: response.data.payload.inbox_identifier,
-                    webhook_url: response.data.payload.webhook_url
+                    id: response.data.id,
                 }
             }
         } catch (error: any) {
@@ -78,7 +74,7 @@ export class ChatwootService {
     }
 
     updateWebhookUrl = async (
-        inbox_id: string,
+        inbox_id: number,
         webhook_url: string
     ) => {
         try {
@@ -90,11 +86,7 @@ export class ChatwootService {
             return {
                 success: true,
                 data: {
-                    id: response.data.payload.id,
-                    name: response.data.payload.name,
-                    channel_type: response.data.payload.channel_type,
-                    inbox_identifier: response.data.payload.inbox_identifier,
-                    webhook_url: response.data.payload.webhook_url
+                    id: response.data.id,
                 }
             }
         } catch (error: any) {
@@ -108,59 +100,40 @@ export class ChatwootService {
 
     checkContactExists = async (
         identifier: string,
-        phoneNumber: string
+        phone_number: string
     ) => {
         try {
-            let phone = phoneNumber
-            let jid = identifier
-
-            // jika jid ada kata : atau @lid maka jangan lakukan search
-            if (jid.includes(':') || jid.includes('@lid')) {
-                jid = ''
-            }
-
-            // jika phone number diawali dengan +, maka dihilangkan +
-            if (phoneNumber.startsWith('+')) {
-                phone = phoneNumber.slice(1)
-            }
-
             let searchResult: any
 
             // first check with identifier
-            searchResult = await this.axiosInstance.get(`api/v1/accounts/${this.account_id}/contacts/search?page=1&q=${jid}`)
+            searchResult = await this.axiosInstance.get(`api/v1/accounts/${this.account_id}/contacts/search?page=1&q=${identifier}`)
 
             // jika cek dengan identifier tidak ditemukan, coba lakukan search dengan phone number
             if (searchResult.data.payload.length === 0) {
-                searchResult = await this.axiosInstance.get(`api/v1/accounts/${this.account_id}/contacts/search?page=1&q=${phone}`)
+                searchResult = await this.axiosInstance.get(`api/v1/accounts/${this.account_id}/contacts/search?page=1&q=${phone_number}`)
             }
 
             const contactExist = searchResult.data.payload.find(
-                (contact: any) => contact.identifier === jid || contact.phone_number === phone
+                (contact: any) => contact.identifier === identifier || contact.phone_number === phone_number
             )
 
             if (!contactExist) {
-                this.logger.info(`Contact ${identifier} or ${phone} not found on chatwoot`)
+                this.logger.warn(`Contact ${identifier} or ${phone_number} not found on chatwoot`)
                 return {
                     success: true,
                     exists: !!contactExist,
                     data: null
                 }
             }
-
-            this.logger.info(`Contact ${identifier} or ${phone} found on chatwoot`)
             return {
                 success: true,
                 exists: !!contactExist,
                 data: contactExist ? {
-                    id: contactExist.id as number,
-                    identifier: contactExist.identifier as string,
-                    name: contactExist.name as string,
-                    phoneNumber: contactExist.phone_number as string,
-                    email: contactExist.email as string,
+                    id: contactExist.id as number
                 } : null
             }
         } catch (error: any) {
-            this.logger.error(`Failed to check contact exists: ${identifier} ${phoneNumber}\n`, error?.response?.data || error)
+            this.logger.error(`Failed to check contact exists: ${identifier} ${phone_number}\n`, error?.response?.data || error)
             return {
                 success: false,
                 error
@@ -181,10 +154,11 @@ export class ChatwootService {
                 identifier,
                 phone_number
             })
+
             return {
                 success: true,
                 data: {
-                    id: response.data.payload.id
+                    id: response.data.payload.contact.id
                 }
             }
         } catch (error: any) {
@@ -220,8 +194,8 @@ export class ChatwootService {
     }
 
     checkConversationExists = async (
-        inbox_id: string,
-        contact_id: string,
+        inbox_id: number,
+        contact_id: number,
     ) => {
         try {
             const response = await this.axiosInstance.get(`api/v1/accounts/${this.account_id}/contacts/${contact_id}/conversations`)
@@ -279,7 +253,7 @@ export class ChatwootService {
             return {
                 success: true,
                 data: {
-                    id: response.data.payload.id
+                    id: response.data.id
                 }
             }
         } catch (error: any) {
@@ -297,12 +271,12 @@ export class ChatwootService {
         content_type: string,
         message_type: string,
         source_id: string,
-        rawMessage: WAMessage,
         in_reply_to?: number,
         mediaUrl?: string,
         mimeType?: string,
         fileName?: string,
         reactTo?: number,
+        rawMessage?: WAMessage,
     ) => {
         // pesan reaction
         if (reactTo) {
@@ -323,7 +297,7 @@ export class ChatwootService {
         }
 
         // pesan media
-        if (content_type !== 'text' || 'unknown') {
+        if (content_type !== 'text') {
             const form = new FormData()
             form.append('content', content || '')
             form.append('message_type', message_type || 'incoming')
@@ -340,7 +314,7 @@ export class ChatwootService {
             }
 
             // 2. jika media whatsapp (private), unduh via baileys
-            if (!fileBuffer) {
+            if (!fileBuffer && rawMessage) {
                 fileBuffer = await downloadMediaMessage(rawMessage, 'buffer', {})
             }
 
@@ -387,6 +361,4 @@ export class ChatwootService {
             }
         }
     }
-
-
 }
